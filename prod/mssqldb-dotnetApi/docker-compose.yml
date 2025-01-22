@@ -7,7 +7,7 @@ networks:
 services:
   mssqldb:
     image: "mcr.microsoft.com/mssql/server:2022-latest"
-    container_name: mssqlserver
+    container_name: mssqlserver15
     restart: always
     hostname: mssqldb
     environment:
@@ -17,6 +17,14 @@ services:
       - dotnet_network
     ports:
       - 9595:1433
+    volumes:
+      - pgdata:/var/opt/mssql
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "1433"]
+      interval: 10s
+      retries: 5
+      start_period: 30s
+      timeout: 10s
 
   dotnet_api-build:
     image: mcr.microsoft.com/dotnet/sdk:8.0
@@ -36,13 +44,14 @@ services:
       - ./dotnet-api:/app
     environment:
       ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__DefaultConnection: "Server=mssqldb,1433;Database=your_db;User Id=sa;Password=Password123456789;"
     ports:
       - "5000:80"
     depends_on:
       - mssqldb
       - dotnet_api-build
     networks:
-      - dotnet_network:
+      - dotnet_network
     command: ["dotnet", "/app/publish/Metheo.Api.dll"]
 
 volumes:
